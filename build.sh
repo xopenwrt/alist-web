@@ -20,8 +20,8 @@ BUILD_JSDELIVR() {
   rm -rf assets
   mv ../alist-web/dist/assets .
   git add .
-  git config --local user.email "i@nn.ci"
-  git config --local user.name "Xhofe"
+  git config --local user.email "xinb@outlooj.it"
+  git config --local user.name "xinb"
   git commit --allow-empty -m "upload $gitTag assets files" -a
   git tag -a $gitTag -m "upload $gitTag assets files"
   cd ..
