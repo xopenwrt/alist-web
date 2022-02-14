@@ -19,7 +19,6 @@ jobs:
 
       - name: Build
         run: |
-          mv alist-web/build.sh .
           bash build.sh
 
       - name: Deploy to main Repository
