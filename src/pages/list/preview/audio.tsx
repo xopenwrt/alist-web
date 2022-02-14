@@ -3,6 +3,7 @@ import {
   Center,
   Heading,
   Icon,
+  useBreakpointValue,
   useColorModeValue,
 } from "@chakra-ui/react";
 import React, { useContext, useEffect } from "react";
@@ -26,6 +27,10 @@ const Audio = ({ file }: FileProps) => {
     ReactJkMusicPlayerAudioListProps[]
   >([]);
   const fileUrl = useFileUrl();
+  const mobile = useBreakpointValue({
+    base: true,
+    md: false,
+  });
   const cover =
     getSetting("music cover") ||
     "https://store.heytapimage.com/cdo-portal/feedback/202110/30/d43c41c5d257c9bc36366e310374fb19.png";
@@ -41,7 +46,8 @@ const Audio = ({ file }: FileProps) => {
       audio.cover = file.thumbnail;
     }
     const audioList = lastFiles
-      .filter((item) => item.name !== file.name && item.type === type)
+      // .filter((item) => item.name !== file.name && item.type === type)
+      .filter((item) => item.type === type)
       .map((item) => {
         let link = fileUrl(item);
         const audio = {
@@ -55,7 +61,12 @@ const Audio = ({ file }: FileProps) => {
         }
         return audio;
       });
-    setAudioLists([audio, ...audioList]);
+    if (audioList.length > 0) {
+      setAudioLists(audioList);
+    } else {
+      setAudioLists([audio]);
+    }
+    // setAudioLists([audio, ...audioList]);
   }, []);
   return (
     <Box className="audio-box" w="full">
@@ -78,6 +89,8 @@ const Audio = ({ file }: FileProps) => {
           left: 20,
           bottom: 20,
         }}
+        playIndex={audioLists.findIndex((item) => item.name === file.name)}
+        sortableOptions={{ disabled: mobile }}
       />
     </Box>
   );
