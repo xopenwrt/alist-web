@@ -1,26 +1,24 @@
 import React, { useContext, useEffect } from "react";
 import { FileProps, IContext } from "../context";
 import axios from "axios";
-import { useColorModeValue } from "@chakra-ui/color-mode";
-import { Spinner } from "@chakra-ui/spinner";
-import { Box, Center } from "@chakra-ui/layout";
-import { useTranslation } from "react-i18next";
+import { HStack, Spinner } from "@chakra-ui/react";
+import { Box, Center } from "@chakra-ui/react";
 import useFileUrl from "../../../hooks/useFileUrl";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import rehypeHighlight from "rehype-highlight";
-import "../styles/github-markdown.css";
+import { FormControl, FormLabel, Switch } from "@chakra-ui/react";
+import Markdown from "~/components/markdown";
+import CodeEditor from "./codeeditor";
+// import jschardet from "jschardet";
 
 export const type = 5;
 export const exts = [];
 
-const Markdown = ({ file, readme }: FileProps) => {
-  const theme = useColorModeValue("light", "dark");
+const MarkdownPreview = ({ file, readme }: FileProps) => {
   const [content, setContent] = React.useState("");
-  const { getSetting } = useContext(IContext);
+  const [srcDoc, setSrcDoc] = React.useState("");
+  const { getSetting,loggedIn } = useContext(IContext);
   let link = useFileUrl(true)(file);
-  const { i18n } = useTranslation();
+  const html = file.name.endsWith(".html");
+  const [show, setShow] = React.useState("preview");
   const refresh = () => {
     if (readme) {
       if (file.type === -1) {
@@ -29,14 +27,18 @@ const Markdown = ({ file, readme }: FileProps) => {
     }
     axios
       .get(link, {
-        transformResponse: [
-          (data) => {
-            return data;
-          },
-        ],
+        responseType: "blob",
       })
-      .then((resp) => {
-        const res = resp.data;
+      .then(async (resp) => {
+        const blob = resp.data;
+        let res = await blob.text();
+        if (res.includes("�")) {
+          const decoder = new TextDecoder("gbk");
+          res = decoder.decode(await blob.arrayBuffer());
+        }
+        if (html) {
+          setSrcDoc(res);
+        }
         if (file.name.endsWith(".md")) {
           setContent(res);
         } else {
@@ -54,25 +56,63 @@ const Markdown = ({ file, readme }: FileProps) => {
   }, []);
   if (content) {
     return (
-      <Box className="markdown-body">
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[
-            rehypeRaw,
-            [rehypeHighlight, { ignoreMissing: true }],
-          ]}
-        >
-          {content}
-        </ReactMarkdown>
+      <Box w="full">
+        <HStack>
+          {html && (
+            <FormControl display="flex" alignItems="center" width="auto" m="1">
+              <FormLabel htmlFor="render" mb="0">
+                Render?
+              </FormLabel>
+              <Switch
+                id="render"
+                isChecked={show === "render"}
+                onChange={() => {
+                  setShow(show === "render" ? "preview" : "render");
+                }}
+              />
+            </FormControl>
+          )}
+          {!readme && loggedIn && (
+            <FormControl display="flex" alignItems="center" width="auto" m="1">
+              <FormLabel htmlFor="render" mb="0">
+                Edit?
+              </FormLabel>
+              <Switch
+                id="edit"
+                isChecked={show === "edit"}
+                onChange={() => {
+                  setShow(show === "edit" ? "preview" : "edit");
+                }}
+              />
+            </FormControl>
+          )}
+        </HStack>
+        {show === "render" ? (
+          <iframe
+            srcDoc={srcDoc}
+            style={{
+              width: "100%",
+              borderRadius: "0.75rem",
+              boxShadow: "#00000031 0px 1px 10px 5px",
+              minHeight: "70vh",
+            }}
+          ></iframe>
+        ) : show === "edit" ? (
+          <CodeEditor file={file} />
+        ) : (
+          <Box className="markdown-body">
+            <Markdown>{content}</Markdown>
+          </Box>
+        )}
       </Box>
     );
   } else {
     return (
       <Center w="full">
-        <Spinner color={getSetting("icon color") || "teal.300"} size="xl" />
+        <Spinner color={getSetting("icon color")} size="xl" />
       </Center>
     );
   }
 };
 
-export default Markdown;
+export default MarkdownPreview;

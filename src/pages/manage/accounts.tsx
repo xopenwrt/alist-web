@@ -31,8 +31,8 @@ import React, { useEffect, useRef } from "react";
 import admin from "../../utils/admin";
 import { useTranslation } from "react-i18next";
 import FormItem from "../../components/form-item";
-
-interface Account {
+import { copyToClip, readFromClip } from "../../utils/copy-clip";
+export interface Account {
   id: number;
   name: string;
   type: string;
@@ -40,7 +40,7 @@ interface Account {
   // password: string;
   // refresh_token: string;
   // access_token: string;
-  root_folder: string;
+  // root_folder: string;
   // limit: number;
   // order_by: string;
   // order_direction: string;
@@ -68,7 +68,7 @@ const EmptyAccount: Account = {
   // password: "",
   // refresh_token: "",
   // access_token: "",
-  root_folder: "",
+  // root_folder: "",
   // limit: 0,
   // order_by: "",
   // order_direction: "",
@@ -94,17 +94,33 @@ interface PropItem {
   required: boolean;
   description?: string;
   values?: string;
+  default?: string;
 }
 
-function GetDefaultValue(type: "string" | "bool" | "select" | "number") {
+function GetDefaultValue(
+  type: "string" | "bool" | "select" | "number" | "text",
+  value?: string
+) {
   switch (type) {
-    case "string":
+    case "string" || "text":
+      if (value) {
+        return value;
+      }
       return "";
     case "bool":
+      if (value) {
+        return value === "true";
+      }
       return false;
     case "select":
+      if (value) {
+        return value;
+      }
       return "";
     case "number":
+      if (value) {
+        return parseInt(value);
+      }
       return 0;
   }
 }
@@ -112,7 +128,7 @@ function GetDefaultValue(type: "string" | "bool" | "select" | "number") {
 const CommonItems: PropItem[] = [
   {
     name: "name",
-    label: "name",
+    label: "Virtual path",
     type: "string",
     required: true,
   },
@@ -156,6 +172,7 @@ const Accounts = () => {
     React.useState<Account>(EmptyAccount);
   const [isEdit, setIsEdit] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
+  const [addAccountLoading, setAddAccountLoading] = React.useState(false);
   const editDisclosure = useDisclosure();
   const initialDrivers = () => {
     admin.get("drivers").then((resp) => {
@@ -219,7 +236,7 @@ const Accounts = () => {
         <Table w="full">
           <Thead>
             <Tr>
-              <Th>{t("name")}</Th>
+              <Th>{t("Virtual path")}</Th>
               <Th>{t("type")}</Th>
               <Th>{t("root_folder")}</Th>
               <Th>{t("index")}</Th>
@@ -246,6 +263,31 @@ const Accounts = () => {
                     >
                       {t("Edit")}
                     </Button>
+                    <Button
+                      ml={1}
+                      colorScheme="green"
+                      onClick={() => {
+                        const info = JSON.stringify(
+                          account,
+                          (k, v) => {
+                            if (k === "id") {
+                              return undefined;
+                            }
+                            return v;
+                          },
+                          2
+                        );
+                        copyToClip(info);
+                        toast({
+                          title: t("Copied"),
+                          status: "success",
+                          duration: 3000,
+                          isClosable: true,
+                        });
+                      }}
+                    >
+                      {t("Copy")}
+                    </Button>
                     <Popover>
                       <PopoverTrigger>
                         <Button ml="1" colorScheme="red">
@@ -258,7 +300,7 @@ const Accounts = () => {
                         <PopoverHeader>{t("Confirmation!")}</PopoverHeader>
                         <PopoverBody>
                           <Text mb="1">
-                            {t("Are you sure you want to delete \"{{name}}\" ?", {
+                            {t('Are you sure you want to delete "{{name}}" ?', {
                               name: account.name,
                             })}
                           </Text>
@@ -325,7 +367,10 @@ const Accounts = () => {
                   newAccount.type = value;
                   for (const item of drivers[value as string]) {
                     if (!Object.keys(newAccount).includes(item.name)) {
-                      newAccount[item.name] = GetDefaultValue(item.type);
+                      newAccount[item.name] = GetDefaultValue(
+                        item.type,
+                        item.default
+                      );
                     }
                   }
                   setcurrentAccount(newAccount);
@@ -393,14 +438,41 @@ const Accounts = () => {
 
           <ModalFooter>
             <Button mr={3} colorScheme="gray" onClick={editDisclosure.onClose}>
-              {t("Cancle")}
+              {t("Cancel")}
             </Button>
             <Button
+              mr={3}
+              colorScheme="green"
+              onClick={() => {
+                readFromClip().then((info) => {
+                  try {
+                    const account = JSON.parse(info);
+                    if (currentAccount.id) {
+                      account.id = currentAccount.id;
+                    }
+                    setcurrentAccount(account);
+                  } catch (e) {
+                    toast({
+                      title: t("Invalid JSON"),
+                      status: "error",
+                      duration: 3000,
+                      isClosable: true,
+                    });
+                  }
+                });
+              }}
+            >
+              {t("Paste")}
+            </Button>
+            <Button
+              isLoading={addAccountLoading}
               onClick={() => {
                 console.log(currentAccount);
+                setAddAccountLoading(true);
                 admin
                   .post(`account/${isEdit ? "save" : "create"}`, currentAccount)
                   .then((resp) => {
+                    setAddAccountLoading(false);
                     const res = resp.data;
                     if (res.code !== 200) {
                       toast({
@@ -409,7 +481,7 @@ const Accounts = () => {
                         duration: 3000,
                         isClosable: true,
                       });
-                      if (!isEdit) {
+                      if (!isEdit && res.code !== 400) {
                         refreshAccounts();
                         editDisclosure.onClose();
                       }

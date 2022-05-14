@@ -9,7 +9,7 @@ import {
 } from "@chakra-ui/react";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useHistory } from "react-router";
+import { useHistory } from "react-router-dom";
 import admin, { changeToken } from "../../utils/admin";
 
 const Login = () => {
@@ -19,7 +19,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const login = () => {
     changeToken(password);
-    admin.get("login").then((resp) => {
+    admin.post("login").then((resp) => {
       const res = resp.data;
       if (res.code === 200) {
         toast({

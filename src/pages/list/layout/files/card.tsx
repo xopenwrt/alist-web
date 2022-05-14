@@ -13,6 +13,9 @@ import React, { useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { IContext, File } from "../../context";
 import getIcon from "../../../../utils/icon";
+import { BeatLoader } from "react-spinners";
+import { useContextMenu } from "react-contexify";
+import { MENU_ID } from "./contextmenu";
 
 const Card = ({
   file,
@@ -23,6 +26,7 @@ const Card = ({
 }) => {
   const location = useLocation();
   const { getSetting } = useContext(IContext);
+  const [error, setError] = React.useState(false);
   const to = `${
     location.pathname.endsWith("/")
       ? location.pathname.slice(0, -1)
@@ -39,6 +43,10 @@ const Card = ({
           in: true,
         }
       : {};
+  const { show } = useContextMenu({
+    id: MENU_ID,
+    props: file,
+  });
   return (
     <ItemBox {...props}>
       <Tooltip label={file.name} gutter={8} placement="auto">
@@ -50,6 +58,16 @@ const Card = ({
           cursor="pointer"
           onClick={() => {
             setShowImage(file.name);
+          }}
+          onContextMenu={(e) => {
+            if (e && e.stopPropagation) {
+              e.stopPropagation(); // W3C
+            } else {
+              if (window && window.event) {
+                window.event.cancelBubble = true; // Old IE
+              }
+            }
+            show(e);
           }}
         >
           <Flex
@@ -72,13 +90,19 @@ const Card = ({
               p="1"
               className="grid-item-thumbnail"
             >
-              {file.thumbnail ? (
+              {file.thumbnail && !error ? (
                 <Image
                   rounded="lg"
                   shadow="lg"
                   maxH="full"
                   maxW="full"
                   src={file.thumbnail}
+                  fallback={
+                    <BeatLoader color={getSetting("icon color")} size={15} />
+                  }
+                  onError={() => {
+                    setError(true);
+                  }}
                 />
               ) : (
                 <Icon

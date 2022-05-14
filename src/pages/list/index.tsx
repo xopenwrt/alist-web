@@ -23,6 +23,7 @@ import useChangeEffect from "../../hooks/useChangeEffect";
 import useSyncCallback from "../../hooks/useSyncCallback";
 
 let notTurnPage = false;
+let inputPass = false;
 
 const Do = (props: any) => {
   const {
@@ -46,11 +47,15 @@ const Do = (props: any) => {
   const history = useHistory();
   const location = useLocation();
   const toast = useToast();
-  const { path } = useApi();
+  const { path, cancelPath } = useApi();
   const refresh = useSyncCallback(() => {
     if (!settingLoaded) {
       return;
     }
+    if (switchToSearch()) {
+      return;
+    }
+    cancelPath();
     console.log("refresh");
     console.log(page);
     const loadType = getSetting("load type");
@@ -88,13 +93,22 @@ const Do = (props: any) => {
         setMeta(res.data.meta);
         setType(res.data.type);
       } else {
-        toast({
-          title: t(res.message),
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
+        if (res.code === 401 && inputPass) {
+          toast({
+            title: t(res.message),
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          inputPass = false;
+        }
         if (res.code === 1001) {
+          toast({
+            title: t(res.message),
+            status: "warning",
+            duration: 3000,
+            isClosable: true,
+          });
           history.push("/@manage");
         }
         if (res.code === 401) {
@@ -148,6 +162,20 @@ const Do = (props: any) => {
   useChangeEffect(() => {
     nextPage();
   }, [page]);
+  const switchToSearch = () => {
+    const query = new URLSearchParams(location.search);
+    const search = query.get("s");
+    if (search) {
+      setType("search");
+      return true;
+    }
+    return false;
+  };
+  useEffect(() => {
+    if(!switchToSearch()){
+      allRefresh();
+    }
+  }, [location.search]);
   const { isOpen, onClose, onOpen } = useDisclosure();
   const initialRef = React.useRef();
   useEffect(() => {
@@ -168,7 +196,7 @@ const Do = (props: any) => {
       >
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>{t("input password")}</ModalHeader>
+          <ModalHeader>{t("Input password")}</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
             <Input
@@ -181,6 +209,7 @@ const Do = (props: any) => {
               onKeyUp={(e) => {
                 if (e.key === "Enter") {
                   localStorage.setItem("password", password);
+                  inputPass = true;
                   refresh();
                   onClose();
                 }
@@ -192,12 +221,13 @@ const Do = (props: any) => {
             <Button
               onClick={() => {
                 localStorage.setItem("password", password);
+                inputPass = true;
                 refresh();
                 onClose();
               }}
               mr={3}
             >
-              {t("ok")}
+              {t("Ok")}
             </Button>
             <Button
               colorScheme="gray"
@@ -206,7 +236,7 @@ const Do = (props: any) => {
                 onClose();
               }}
             >
-              {t("cancle")}
+              {t("Cancel")}
             </Button>
           </ModalFooter>
         </ModalContent>

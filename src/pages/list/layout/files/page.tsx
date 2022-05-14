@@ -74,7 +74,7 @@ const AutoLoadMore = () => {
         });
         nexting = true;
       }
-    }else{
+    } else {
       nexting = false;
     }
   };
@@ -93,7 +93,7 @@ const AutoLoadMore = () => {
       ) : (
         <Spinner
           ref={dom}
-          color={getSetting("icon color") || "teal.300"}
+          color={getSetting("icon color") || "#1890ff"}
           size="lg"
         />
       )}
@@ -107,15 +107,22 @@ const Pagination_ = () => {
     base: "xs",
     md: "sm",
   });
+  const pageNeighbours = useBreakpointValue({
+    base: 1,
+    md: 2,
+  });
+  if (page.page_size >= meta.total) {
+    return null;
+  }
   return (
     <Flex mt={2} alignItems="center" w="full" justifyContent="center">
       <Pagination
-        defaultCurrent={page.page_num}
+        current={page.page_num}
         colorScheme="twitter"
         total={meta.total}
         paginationProps={{ display: "flex" }}
         pageSize={page.page_size}
-        pageNeighbours={2}
+        pageNeighbours={pageNeighbours}
         size={size}
         onChange={(page_num) => {
           setPage({
@@ -128,7 +135,7 @@ const Pagination_ = () => {
   );
 };
 
-const Bottom = () => {
+const Page = () => {
   const { getSetting, meta, type } = useContext(IContext);
   const loadType = getSetting("load type");
   // console.log(loadType);
@@ -149,4 +156,4 @@ const Bottom = () => {
   return null;
 };
 
-export default Bottom;
+export default Page;

@@ -32,12 +32,14 @@ import { useTranslation } from "react-i18next";
 import admin from "../../utils/admin";
 import FormItem from "../../components/form-item";
 
-interface Meta {
+export interface Meta {
   id: number;
   path: string;
   password: string;
   hide: string;
   upload: boolean;
+  only_shows: string;
+  readme: string;
 }
 
 const EmptyMeta = {
@@ -46,6 +48,8 @@ const EmptyMeta = {
   password: "",
   hide: "",
   upload: false,
+  only_shows: "",
+  readme: "",
 };
 
 const Metas = () => {
@@ -202,10 +206,20 @@ const Metas = () => {
                   type: "string",
                 },
                 {
+                  name: "only_shows",
+                  description: "Only show files(split by ,)",
+                  type: "string",
+                },
+                {
                   name: "upload",
                   description: "Allow visitors to upload",
                   type: "bool",
                 },
+                {
+                  name: "readme",
+                  description: "Readme url",
+                  type: "string",
+                }
               ].map((item) => {
                 return (
                   <FormItem
@@ -237,7 +251,7 @@ const Metas = () => {
 
           <ModalFooter>
             <Button mr={3} colorScheme="gray" onClick={editDisclosure.onClose}>
-              {t("Cancle")}
+              {t("Cancel")}
             </Button>
             <Button
               onClick={() => {

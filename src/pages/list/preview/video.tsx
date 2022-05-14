@@ -5,9 +5,7 @@ import useFolderLink from "../../../hooks/useFolderLink";
 import {
   Box,
   Button,
-  Center,
   chakra,
-  HStack,
   Menu,
   MenuButton,
   MenuItem,
@@ -16,16 +14,19 @@ import {
   Text,
   Icon,
   useBreakpointValue,
+  Wrap,
 } from "@chakra-ui/react";
 import { useTranslation } from "react-i18next";
 import flvjs from "flv.js";
 import { Link as ReactLink, useHistory } from "react-router-dom";
 import { BsCardList } from "react-icons/bs";
 import useFileUrl from "../../../hooks/useFileUrl";
+import { isMobile, userAgent } from "../../../utils/compatibility";
+import Hls from "hls.js";
 
 export const type = 3;
-export const exts = [];
-const DirectDrivers = ["Native", "GoogleDrive"];
+export const exts = ["m3u8"];
+// const DirectDrivers = ["Native", "GoogleDrive"];
 
 const Video = ({ file }: FileProps) => {
   const { getSetting, lastFiles } = useContext(IContext);
@@ -34,7 +35,7 @@ const Video = ({ file }: FileProps) => {
   let fileUrl = useFileUrl();
   let link = fileUrl();
   const proxyLink = useFolderLink(true);
-  const url = DirectDrivers.includes(file.driver) ? link : file.url;
+  const url = file.name.endsWith(".m3u8") ? link : file.url;
   const history = useHistory();
   let art: Artplayer;
   const subtitleSize = useBreakpointValue({
@@ -70,7 +71,7 @@ const Video = ({ file }: FileProps) => {
       //   crossOrigin: "anonymous",
       // },
       customType: {
-        flv: function (video: HTMLMediaElement, url: string, art: Artplayer) {
+        flv: function (video: HTMLMediaElement, url: string) {
           const flvPlayer = flvjs.createPlayer(
             {
               type: "flv",
@@ -81,6 +82,16 @@ const Video = ({ file }: FileProps) => {
           flvPlayer.attachMediaElement(video);
           flvPlayer.load();
         },
+        m3u8: function (video: HTMLMediaElement, url: string) {
+          var hls = new Hls();
+          hls.loadSource(url);
+          hls.attachMedia(video);
+        },
+      },
+      moreVideoAttr: {
+        "webkit-playsinline": true,
+        playsInline: true,
+        // controls: true,
       },
     };
     if (file.name.toLowerCase().endsWith(".flv")) {
@@ -88,6 +99,16 @@ const Video = ({ file }: FileProps) => {
     }
     if (getSetting("artplayer whitelist")) {
       options.whitelist = getSetting("artplayer whitelist").split(",");
+    } else {
+      options.whitelist = [];
+    }
+    const useArt =
+      !isMobile ||
+      options.whitelist.some((item: string) => {
+        return item === "*" || userAgent.indexOf(item) > -1;
+      });
+    if (!useArt) {
+      options.moreVideoAttr.controls = true;
     }
     if (getSetting("artplayer autoSize") === "true") {
       options.autoSize = true;
@@ -152,7 +173,7 @@ const Video = ({ file }: FileProps) => {
             {file.name}
           </Text>
         </MenuButton>
-        <MenuList w="full" zIndex={999}>
+        <MenuList w="full" maxH="65vh" overflowY="auto" zIndex={999}>
           {videoFiles.map((f) => (
             <MenuItem key={f.name} w="full">
               <Link
@@ -174,27 +195,38 @@ const Video = ({ file }: FileProps) => {
         </MenuList>
       </Menu>
       <Box w="full" h="60vh" id="video-player"></Box>
-      <Center mt="2" w="full">
-        <HStack spacing="2">
-          <Button
-            colorScheme="telegram"
-            as={chakra.a}
-            href={`iina://weblink?url=${link}`}
-          >
-            IINA
-          </Button>
-          <Button
-            colorScheme="yellow"
-            as={chakra.a}
-            href={`potplayer://${link}`}
-          >
-            PotPlayer
-          </Button>
-          <Button colorScheme="orange" as={chakra.a} href={`vlc://${link}`}>
-            VLC
-          </Button>
-        </HStack>
-      </Center>
+      <Wrap mt="2" spacing="2" justify="center">
+        <Button
+          colorScheme="purple"
+          as={chakra.a}
+          href={`iina://weblink?url=${link}`}
+        >
+          IINA
+        </Button>
+        <Button colorScheme="yellow" as={chakra.a} href={`potplayer://${link}`}>
+          PotPlayer
+        </Button>
+        <Button colorScheme="orange" as={chakra.a} href={`vlc://${link}`}>
+          VLC
+        </Button>
+        <Button colorScheme="teal" as={chakra.a} href={`nplayer-${link}`}>
+          nPlayer
+        </Button>
+        <Button
+          colorScheme="blue"
+          as={chakra.a}
+          href={`intent:${link}#Intent;package=com.mxtech.videoplayer.ad;S.title=${file.name};end`}
+        >
+          MXPlayer
+        </Button>
+        <Button
+          colorScheme="blue"
+          as={chakra.a}
+          href={`intent:${link}#Intent;package=com.mxtech.videoplayer.pro;S.title=${file.name};end`}
+        >
+          MXPlayer Pro
+        </Button>
+      </Wrap>
     </Box>
   );
 };

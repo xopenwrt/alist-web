@@ -35,6 +35,7 @@ import admin, { changeToken } from "../../utils/admin";
 import Overlay from "../../components/overlay";
 import useTitle from "../../hooks/useTitle";
 import { IconType } from "react-icons";
+import {FaDatabase} from "react-icons/fa";
 
 const Login = lazy(() => import("./login"));
 const Settings = lazy(() => import("./settings"));
@@ -80,6 +81,12 @@ const NavItems: NavItem[] = [
     icon: SiMetabase,
     component: Metas,
   },
+  {
+    name: "Backup & Restore",
+    to: "backup-restore",
+    icon: FaDatabase,
+    component: lazy(() => import("./backup-restore")),
+  }
 ];
 
 const getAllNavItems = (items: NavItem[], acc: NavItem[] = []) => {
@@ -107,7 +114,7 @@ export default function Swibc() {
   const toast = useToast();
   useTitle(t("Alist Manage"));
   useEffect(() => {
-    admin.get("login").then((resp) => {
+    admin.post("login").then((resp) => {
       const res = resp.data;
       let url = match.url;
       if (!url.endsWith("/")) {

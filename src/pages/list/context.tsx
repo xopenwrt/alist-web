@@ -1,4 +1,4 @@
-import { Center, Spinner, useToast } from "@chakra-ui/react";
+import { Center, Spinner, useColorModeValue, useToast } from "@chakra-ui/react";
 import React, {
   createContext,
   useState,
@@ -10,6 +10,9 @@ import { useTranslation } from "react-i18next";
 import request from "../../utils/public";
 import admin from "../../utils/admin";
 import useLocalStorage from "../../hooks/useLocalStorage";
+import { ClimbingBoxLoader } from "react-spinners";
+import htoast from "react-hot-toast";
+import Markdown from "~/components/markdown";
 
 export interface File {
   name: string;
@@ -33,6 +36,7 @@ export interface Meta {
   driver: string;
   upload: boolean;
   total: number;
+  readme: string;
 }
 
 export interface PathResp {
@@ -59,7 +63,14 @@ export const getSetting = (key: string): string => {
   return setting ? setting.value : "";
 };
 
-type TypeType = "file" | "folder" | "error" | "loading" | "unauthorized" | "nexting";
+type TypeType =
+  | "file"
+  | "folder"
+  | "error"
+  | "loading"
+  | "unauthorized"
+  | "nexting"
+  | "search";
 
 interface Sort {
   orderBy?: "name" | "updated_at" | "size";
@@ -69,6 +80,11 @@ interface Sort {
 interface Page {
   page_num: number;
   page_size: number;
+}
+
+interface Aria2 {
+  rpcUrl: string;
+  rpcSecret: string;
 }
 
 export interface ContextProps {
@@ -101,6 +117,9 @@ export interface ContextProps {
   loggedIn: boolean;
   page: Page;
   setPage: (page: Page) => void;
+  hideFiles: RegExp[];
+  aria2: Aria2;
+  setAria2: (aria2: Aria2) => void;
 }
 
 export const IContext = createContext<ContextProps>({
@@ -122,11 +141,14 @@ export const IContext = createContext<ContextProps>({
   selectFiles: [],
   setSelectFiles: () => {},
   setType: () => {},
-  meta: { driver: "", upload: false, total: 0 },
+  meta: { driver: "", upload: false, total: 0, readme: "" },
   setMeta: () => {},
   loggedIn: false,
   page: { page_num: 1, page_size: 30 },
   setPage: () => {},
+  hideFiles: [],
+  aria2: { rpcUrl: "", rpcSecret: "" },
+  setAria2: () => {},
 });
 
 const IContextProvider = (props: any) => {
@@ -156,6 +178,14 @@ const IContextProvider = (props: any) => {
     page_size: 30,
   });
 
+  const [aria2, setAria2] = React.useState<Aria2>({
+    rpcUrl: "",
+    rpcSecret: "",
+  });
+
+  const [hideFiles, setHideFiles] = React.useState<RegExp[]>([]);
+  const darkMode = useColorModeValue(false, true);
+
   const initialSettings = useCallback(() => {
     request
       .get("settings")
@@ -178,6 +208,30 @@ const IContextProvider = (props: any) => {
             link.rel = "shortcut icon";
             link.href = getSetting("favicon");
             document.getElementsByTagName("head")[0].appendChild(link);
+          }
+          if (getSetting("announcement")) {
+            htoast((t) => <Markdown>{getSetting("announcement")}</Markdown>, {
+              position: "top-right",
+              style: darkMode
+                ? {
+                    borderRadius: "10px",
+                    background: "#333",
+                    color: "#fff",
+                  }
+                : undefined,
+            });
+          }
+          if (getSetting("hide files")) {
+            let hideFiles = getSetting("hide files")
+              .split(/\n/g)
+              .filter((item) => !!item.trim())
+              .map((item) => {
+                item = item.trim();
+                let str = item.replace(/^\/(.*)\/([a-z]*)$/, "$1");
+                let args = item.replace(/^\/(.*)\/([a-z]*)$/, "$2");
+                return new RegExp(str, args);
+              });
+            setHideFiles(hideFiles);
           }
           setPage({
             ...page,
@@ -203,6 +257,9 @@ const IContextProvider = (props: any) => {
       });
   }, []);
   const login = useCallback(() => {
+    if (!localStorage.getItem("admin-token")) {
+      return;
+    }
     admin.get("login").then((resp) => {
       if (resp.data.code === 200) {
         setLoggedIn(true);
@@ -210,9 +267,25 @@ const IContextProvider = (props: any) => {
     });
   }, []);
 
+  const aria2Config = useCallback(() => {
+    admin.get("settings?group=1").then((resp) => {
+      let res = resp.data;
+      if (res.code === 200) {
+        let setting: Setting[] = res.data;
+        let url = setting.find((item) => item.key === "Aria2 RPC url");
+        let secret = setting.find((item) => item.key === "Aria2 RPC secret");
+        setAria2({
+          rpcUrl: url?.value || "",
+          rpcSecret: secret?.value || "",
+        });
+      }
+    });
+  }, []);
+
   useEffect(() => {
     initialSettings();
     login();
+    aria2Config();
   }, []);
 
   const [showUnfold, setShowUnfold] = React.useState<boolean>(false);
@@ -222,12 +295,14 @@ const IContextProvider = (props: any) => {
     driver: "",
     upload: false,
     total: 0,
+    readme: "",
   });
   const [loggedIn, setLoggedIn] = React.useState<boolean>(false);
   if (!settingLoaded) {
     return (
       <Center w="full" h="100vh">
-        <Spinner color={getSetting("icon color") || "teal.300"} size="xl" />
+        {/* <Spinner color={getSetting("icon color") || "#1890ff"} size="xl" /> */}
+        <ClimbingBoxLoader color="#1890ff" loading={true} size={20} />
       </Center>
     );
   }
@@ -263,6 +338,8 @@ const IContextProvider = (props: any) => {
         loggedIn,
         page,
         setPage,
+        hideFiles,
+        aria2,
       }}
       {...props}
     />

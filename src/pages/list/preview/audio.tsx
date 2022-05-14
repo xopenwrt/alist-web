@@ -3,6 +3,7 @@ import {
   Center,
   Heading,
   Icon,
+  useBreakpointValue,
   useColorModeValue,
 } from "@chakra-ui/react";
 import React, { useContext, useEffect } from "react";
@@ -14,6 +15,7 @@ import "react-jinke-music-player/assets/index.css";
 import { FileProps, IContext } from "../context";
 import getIcon from "../../../utils/icon";
 import useFileUrl from "../../../hooks/useFileUrl";
+import useLocalStorage from "../../../hooks/useLocalStorage";
 
 export const type = 4;
 export const exts = [];
@@ -26,10 +28,16 @@ const Audio = ({ file }: FileProps) => {
     ReactJkMusicPlayerAudioListProps[]
   >([]);
   const fileUrl = useFileUrl();
+  const [volume, setVolume] = useLocalStorage("volume", 0.5);
+  const mobile = useBreakpointValue({
+    base: true,
+    md: false,
+  });
   const cover =
     getSetting("music cover") ||
     "https://store.heytapimage.com/cdo-portal/feedback/202110/30/d43c41c5d257c9bc36366e310374fb19.png";
   const singer = t("unknown");
+  const [playIndex, setPlayIndex] = React.useState(0);
   useEffect(() => {
     const audio: ReactJkMusicPlayerAudioListProps = {
       name: file.name,
@@ -41,7 +49,8 @@ const Audio = ({ file }: FileProps) => {
       audio.cover = file.thumbnail;
     }
     const audioList = lastFiles
-      .filter((item) => item.name !== file.name && item.type === type)
+      // .filter((item) => item.name !== file.name && item.type === type)
+      .filter((item) => item.type === type)
       .map((item) => {
         let link = fileUrl(item);
         const audio = {
@@ -55,14 +64,19 @@ const Audio = ({ file }: FileProps) => {
         }
         return audio;
       });
-    setAudioLists([audio, ...audioList]);
+    if (audioList.length > 0) {
+      setAudioLists(audioList);
+    } else {
+      setAudioLists([audio]);
+    }
+    setPlayIndex(audioList.findIndex((item) => item.name === file.name));
   }, []);
   return (
     <Box className="audio-box" w="full">
       <Center p="8" w="full">
         <Heading display="inline-flex" alignItems="center">
           <Icon
-            color={getSetting("icon color") || "teal.300"}
+            color={getSetting("icon color") || "#1890ff"}
             as={getIcon(file.type, "")}
           />
           {t("Enjoy the music")}...
@@ -78,6 +92,11 @@ const Audio = ({ file }: FileProps) => {
           left: 20,
           bottom: 20,
         }}
+        playIndex={playIndex}
+        onPlayIndexChange={setPlayIndex}
+        sortableOptions={{ disabled: mobile }}
+        defaultVolume={volume}
+        onAudioVolumeChange={(v) => setVolume(v)}
       />
     </Box>
   );

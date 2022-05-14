@@ -15,23 +15,27 @@ import {
   BsFillMarkdownFill,
 } from "react-icons/bs";
 import { DiAndroid } from "react-icons/di";
-import { FaDatabase, FaBook } from "react-icons/fa";
+import { FaDatabase, FaBook, FaCompactDisc } from "react-icons/fa";
 import { IoIosFolder } from "react-icons/io";
 
 const iconMap = {
-  "dmg,ipa": BsApple,
-  exe: BsWindows,
+  "dmg,ipa,plist": BsApple,
+  "exe,msi": BsWindows,
   "zip,gz,rar,7z,tar,jar,xz": BsFillFileEarmarkZipFill,
   apk: DiAndroid,
   db: FaDatabase,
   md: BsFillMarkdownFill,
   epub: FaBook,
+  iso: FaCompactDisc,
+  m3u8: BsFillFileEarmarkPlayFill,
 };
 
 const getIcon = (type: number, ext: string) => {
-  for (const [extensions, icon] of Object.entries(iconMap)) {
-    if (extensions.split(",").includes(ext.toLowerCase())) {
-      return icon;
+  if (type !== 1) {
+    for (const [extensions, icon] of Object.entries(iconMap)) {
+      if (extensions.split(",").includes(ext.toLowerCase())) {
+        return icon;
+      }
     }
   }
   switch (type) {
