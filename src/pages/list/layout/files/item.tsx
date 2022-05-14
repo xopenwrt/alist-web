@@ -74,7 +74,7 @@ const ListItem = ({ file }: FileProps) => {
             <Flex
               className="list-item-name"
               align="center"
-              w={{ base: 3 / 4, md: "50%" }}
+              w={{ base: 3 / 4, md: 5 / 8 }}
             >
               {multiSelect && (
                 <Checkbox
@@ -116,14 +116,14 @@ const ListItem = ({ file }: FileProps) => {
             </Flex>
             <Text
               className="list-item-size"
-              w={{ base: 1 / 4, md: 1 / 6 }}
+              w={{ base: 1 / 4, md: 1 / 8 }}
               textAlign="right"
             >
               {file.size_str ? file.size_str : getFileSize(file.size)}
             </Text>
             <Text
               className="list-item-updated_at"
-              w={{ base: 0, md: 1 / 3 }}
+              w={{ base: 0, md: 2 / 8 }}
               display={{ base: "none", md: "unset" }}
               textAlign="right"
             >

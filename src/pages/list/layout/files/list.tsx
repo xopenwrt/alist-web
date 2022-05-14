@@ -26,9 +26,9 @@ const List = ({ files }: { files: File[] }) => {
     <VStack className="list-box" w="full">
       <HStack className="list-title" w="full" p="2">
         {[
-          { name: "name", base: 2 / 3, md: "50%", textAlign: "left" },
-          { name: "size", base: 1 / 3, md: 1 / 6, textAlign: "right" },
-          { name: "updated_at", base: 0, md: 1 / 3, textAlign: "right" },
+          { name: "name", base: 2 / 3, md: 5 / 8, textAlign: "left" },
+          { name: "size", base: 1 / 3, md: 1 / 8, textAlign: "right" },
+          { name: "updated_at", base: 0, md: 2 / 8, textAlign: "right" },
         ].map((item) => {
           return (
             <Flex
